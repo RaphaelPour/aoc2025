@@ -5,6 +5,7 @@ import (
 
 	"github.com/RaphaelPour/stellar/input"
 	"github.com/RaphaelPour/stellar/strings"
+	"github.com/RaphaelPour/stellar/math"
 )
 
 func part1(data []string) int {
@@ -45,23 +46,33 @@ func part2(data []string) int {
 			continue
 		}
 
-		val := strings.ToInt(line[1:])
+		lastDialZero := dial == 0
+		lastDial := dial
+		rawVal := strings.ToInt(line[1:])
+		val := rawVal
 		if line[0] == 'L' {
-			val = 100 - val
+			val = math.Abs(100 - val) % 100
 		}
-		rawVal := val % 100
-
-		if dial+rawVal <= 0 || dial+rawVal >= 100 {
-			zeroHits += 1
-		}
-
 		dial = (dial + val) % 100
+		revolutions := 0
+		if line[0] == 'R'{
+			revolutions = (lastDial+rawVal)/100
+		} else if line[0] == 'L'{
+			revolutions = (dial+rawVal)/100
+		}
 
-		fmt.Printf("%s: %d\n", line, dial)
+		fmt.Println(revolutions)
 
-		/*if dial == 0 {
+		correctHit := 0
+		if lastDialZero && line[0] == 'L' {
+			correctHit +=1
+		}
+
+		zeroHits += revolutions - correctHit
+		if dial == 0 && revolutions == 0 {
 			zeroHits += 1
-		}*/
+		}
+		fmt.Printf("%s r=%d: %d |0|=%d\n", line,revolutions, dial, zeroHits)
 	}
 
 	return zeroHits
@@ -75,6 +86,6 @@ func main() {
 	fmt.Println(part1(data))
 
 	fmt.Println("== [ PART 2 ] ==")
-	fmt.Println("bad: 1889,2296,2347,2357,3492")
 	fmt.Println(part2(data))
+	fmt.Println("bad: 1889,2296,2347,2357,3492,5722,6016,6252")
 }
