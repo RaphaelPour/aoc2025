@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 
@@ -43,11 +44,26 @@ func (p Point) Equal(other Point) bool {
 }
 
 func (p Point) String() string {
-	return fmt.Sprintf("%d,%d,%d", p.x, p.y, p.z)
+	return fmt.Sprintf("(%d %d %d)", p.x, p.y, p.z)
 }
 
 type Circuit struct {
 	boxes []Point
+}
+
+func NewCircuit(boxes []Point) Circuit {
+	c := Circuit{}
+	c.boxes = make([]Point, len(boxes))
+	copy(c.boxes, boxes)
+	return c
+}
+
+func (c Circuit) String() string {
+	output := ""
+	for _, box := range c.boxes {
+		output += box.String()
+	}
+	return output
 }
 
 func (c *Circuit) AddOnce(box Point) bool {
@@ -59,23 +75,14 @@ func (c *Circuit) AddOnce(box Point) bool {
 	return true
 }
 
-func (c Circuit) Contains(other Point) bool {
-	for _, box := range c.boxes {
-		if box.Equal(other) {
-			return true
-		}
-	}
-
-	return false
+func (c Circuit) Contains(that Point) bool {
+	return slices.ContainsFunc(c.boxes, func(this Point) bool {
+		return this.Equal(that)
+	})
 }
 
 func (c Circuit) ContainsAny(others []Point) bool {
-	for _, other := range others {
-		if c.Contains(other) {
-			return true
-		}
-	}
-	return false
+	return slices.ContainsFunc(others, c.Contains)
 }
 
 func (c Circuit) FindMissing(others []Point) Point {
@@ -105,36 +112,41 @@ func part1(data []string) int {
 	}
 
 	sort.Float64s(distancesKeys)
+	fmt.Println(distancesKeys)
+
+	// we only need the lowest 1000
+	distancesKeys = distancesKeys[:1001]
 
 	// print all distances with their box pair from low to high
 	// TODO: Start with the lowest distance and add the pairs into
 	//       circuits. Check if one of the involved boxes are already
 	//       within a circuit and just add it there.
-	circuits := make([]*Circuit, 0)
+	circuits := make([]Circuit, 0)
 	for _, key := range distancesKeys {
-		fmt.Println(key, distances[key])
-		var foundCircuit *Circuit
-		val := distances[key]
-		for _, circuit := range circuits {
-			if circuit.ContainsAny(val) {
-				foundCircuit = circuit
+		fmt.Println("processing", key, distances[key])
+		var foundIndex = -1
+		pair := distances[key]
+		for i, circuit := range circuits {
+			if circuit.ContainsAny(pair) {
+				fmt.Printf("found %s in %s\n", pair, circuit)
+				foundIndex = i
 				break
 			}
 		}
 
-		fmt.Print(circuits)
 		// no circuit found
-		if foundCircuit == nil {
-			circuits = append(circuits, &Circuit{boxes: val})
+		if foundIndex == -1 {
+			circuits = append(circuits, NewCircuit(pair))
 		} else {
-			// there is already a circuit, just add the missing one
-			if !foundCircuit.AddOnce(foundCircuit.FindMissing(val)) {
-				panic("moep")
-			}
+			circuits[foundIndex].AddOnce(pair[0])
+			circuits[foundIndex].AddOnce(pair[1])
 		}
 
-		fmt.Println("->", circuits)
+		// TODO: don't consider just the pair but also the circuit it may be added to
+		//       or consolidate pair and circuit
 	}
+
+	fmt.Printf("found %d circuits\n", len(circuits))
 
 	if len(distancesKeys) < 3 {
 		panic(fmt.Sprintf("need at least three circuits, got %d\n", len(distancesKeys)))
@@ -146,7 +158,7 @@ func part1(data []string) int {
 	}
 
 	sort.Ints(maxes)
-	fmt.Println(maxes)
+	fmt.Println("max:", maxes)
 
 	return smath.Product(smath.MaxN(maxes, 3))
 }
@@ -156,10 +168,11 @@ func part2(data []string) int {
 }
 
 func main() {
-	data := input.LoadString("input_test")
+	data := input.LoadString("input")
 
 	fmt.Println("== [ PART 1 ] ==")
 	fmt.Println(part1(data))
+	fmt.Println("too low: 2548")
 
 	// fmt.Println("== [ PART 2 ] ==")
 	// fmt.Println(part2(data))
