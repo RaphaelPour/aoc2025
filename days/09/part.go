@@ -4,7 +4,6 @@ package main
 
 import (
 	"fmt"
-	"iter"
 	"strconv"
 	"strings"
 )
@@ -528,12 +527,6 @@ type Point struct {
 	x, y int
 }
 
-func (p Point) Multiply(other Point) Point {
-	p.x *= other.x
-	p.y *= other.y
-	return p
-}
-
 type Number interface {
 	int | int64 | float64
 }
@@ -551,21 +544,10 @@ func (p Point) Area(other Point) int {
 
 type Points []Point
 
-func Pairs[T ~[]K, K any](list T) iter.Seq2[K, K] {
-	return func(yield func(K, K) bool) {
-		for i := 0; i < len(list)-1; i++ {
-			for j := i + 1; j < len(list); j++ {
-				if !yield(list[i], list[j]) {
-					return
-				}
-			}
-		}
-	}
-}
-
 func main() {
 
 	points := make(Points, strings.Count(input, "\n")+1)
+	maxArea := 0
 	for i, row := range strings.Split(input, "\n") {
 		p := strings.Split(row, ",")
 		if len(p) != 2 {
@@ -573,14 +555,21 @@ func main() {
 			return
 		}
 
-		x := Must(strconv.Atoi(p[0]))
-		y := Must(strconv.Atoi(p[1]))
-		points[i] = Point{x, y}
-	}
+		current := Point{
+			x: Must(strconv.Atoi(p[0])),
+			y: Must(strconv.Atoi(p[1])),
+		}
 
-	maxArea := 0
-	for a, b := range Pairs(points) {
-		maxArea = max(maxArea, a.Area(b))
+		// uniq pairs can be build using two nested loops with
+		// i \in [0,len-1) and j \in [i+1,len)
+		// otherwise we could just pair the new point with the already existing
+		// to avoid duplicates and see all points
+		for _, other := range points[:i] {
+			maxArea = max(maxArea, other.Area(current))
+		}
+
+		points[i] = current
+
 	}
 	fmt.Println(maxArea)
 }
