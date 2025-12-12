@@ -4,6 +4,7 @@ package main
 
 import (
 	"fmt"
+	"iter"
 	"strconv"
 	"strings"
 )
@@ -550,6 +551,18 @@ func (p Point) Area(other Point) int {
 
 type Points []Point
 
+func Pairs[T ~[]K, K any](list T) iter.Seq2[K, K] {
+	return func(yield func(K, K) bool) {
+		for i := 0; i < len(list)-1; i++ {
+			for j := i + 1; j < len(list); j++ {
+				if !yield(list[i], list[j]) {
+					return
+				}
+			}
+		}
+	}
+}
+
 func main() {
 
 	points := make(Points, strings.Count(input, "\n")+1)
@@ -566,10 +579,8 @@ func main() {
 	}
 
 	maxArea := 0
-	for i := 0; i < len(points)-1; i++ {
-		for j := i + 1; j < len(points); j++ {
-			maxArea = max(maxArea, points[i].Area(points[j]))
-		}
+	for a, b := range Pairs(points) {
+		maxArea = max(maxArea, a.Area(b))
 	}
 	fmt.Println(maxArea)
 }
